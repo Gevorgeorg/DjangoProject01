@@ -10,7 +10,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-
+.idea/
 # Database
 *.sqlite3
 *.db
