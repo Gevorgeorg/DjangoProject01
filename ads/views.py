@@ -1,4 +1,5 @@
 from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator
 from django.db.models import QuerySet
 from django.http import HttpResponse, JsonResponse, HttpRequest
 from django.shortcuts import get_object_or_404
@@ -6,8 +7,9 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 import json
-from ads.models import Ads, Category
-from django.views.generic import ListView, DetailView, CreateView
+from ads.models import Ad, Category
+from django.views.generic import ListView, DetailView, CreateView, DeleteView, UpdateView
+from DjangoProject.settings import ITEMS_PER_PAGE
 
 
 @csrf_exempt
@@ -18,39 +20,57 @@ def home_view(request: HttpRequest) -> HttpResponse:
 
 @method_decorator(csrf_exempt, name='dispatch')
 class AdView(View):
-    def get(self, request: HttpRequest) -> JsonResponse:
-        ads = Ads.objects.all()
-        response: list[dict] = []
-        for ad in ads:
-            response.append({
-                'id': ad.id,
-                "name": ad.name,
-                "author": ad.author,
-                "price": ad.price,
-                "description": ad.description,
-                "address": ad.address,
-                "is_published": ad.is_published,
-            })
 
-        return JsonResponse(response, safe=False)
+    def get(self, request: HttpRequest, pk: int = None) -> JsonResponse:
+        if pk:
+            ad: Ad = get_object_or_404(Ad, id=pk)
+            return JsonResponse(self._add_to_dict(ad))
+
+        else:
+            page_number: int = int(request.GET.get('page', 1))
+            ads_list = Ad.objects.all().order_by('-price')
+            paginator = Paginator(ads_list, ITEMS_PER_PAGE)
+            page_obj = paginator.get_page(page_number)
+
+            return JsonResponse({
+                "items": [self._add_to_dict(ad) for ad in page_obj],
+                "total": paginator.count,
+                "num_pages": paginator.num_pages,
+            }, status=200)
 
     def post(self, request: HttpRequest) -> JsonResponse:
-        ad_data: dict = json.loads(request.body)
-        ad: Ads = Ads.objects.create(
-            name=ad_data["name"],
-            author=ad_data["author"],
-            price=ad_data["price"],
-            description=ad_data["description"],
-            address=ad_data["address"],
-            is_published=ad_data["is_published"]
-        )
-
         try:
+            data: dict = json.loads(request.body)
+            ad: Ad = Ad(**{k: v for k, v in data.items() if
+                           k in ['name', 'author', 'price', 'description', 'address', 'is_published']})
             ad.full_clean()
-        except ValidationError as e:
-            return JsonResponse(e.message_dict, status=422)
+            ad.save()
+            return JsonResponse(self._add_to_dict(ad), status=201)
+        except (ValidationError, KeyError) as e:
+            return JsonResponse({"error": str(e)}, status=422)
 
-        return JsonResponse({
+    def patch(self, request: HttpRequest, pk: int) -> JsonResponse:
+        try:
+            ad: Ad = get_object_or_404(Ad, id=pk)
+            data: dict = json.loads(request.body)
+
+            for field in ['name', 'author', 'price', 'description', 'address', 'is_published']:
+                if field in data:
+                    setattr(ad, field, data[field])
+
+            ad.full_clean()
+            ad.save()
+            return JsonResponse(self._add_to_dict(ad))
+        except ValidationError as e:
+            return JsonResponse({"error": str(e)}, status=422)
+
+    def delete(self, request: HttpRequest, pk: int) -> JsonResponse:
+        ad: Ad = get_object_or_404(Ad, id=pk)
+        ad.delete()
+        return JsonResponse({"status": "ok"})
+
+    def _add_to_dict(self, ad: Ad) -> dict:
+        return {
             "id": ad.id,
             "name": ad.name,
             "author": ad.author,
@@ -58,15 +78,22 @@ class AdView(View):
             "description": ad.description,
             "address": ad.address,
             "is_published": ad.is_published,
-        })
+            "image": ad.image.url if ad.image else None
+        }
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class AdEntityView(View):
-    def get(self, request: HttpRequest, pk: int) -> JsonResponse:
-        ad: Ads = get_object_or_404(Ads, id=pk)
+class AdUploadImageView(View):
+    def post(self, request: HttpRequest, pk: int) -> JsonResponse:
+        ad: Ad = get_object_or_404(Ad, id=pk)
+        image_file = request.FILES['image']
+        ad.image = image_file
+        ad.save()
 
-        return JsonResponse({
+        return JsonResponse(self._ad_to_dict(ad))
+
+    def _ad_to_dict(self, ad: Ad) -> dict:
+        return {
             "id": ad.id,
             "name": ad.name,
             "author": ad.author,
@@ -74,15 +101,16 @@ class AdEntityView(View):
             "description": ad.description,
             "address": ad.address,
             "is_published": ad.is_published,
-        })
+            "image": ad.image.url if ad.image else None  # URL изображения
+        }
 
 
 class CategoryListView(ListView):
     model: Category = Category
 
-    def render_to_response(self, context: dict) -> JsonResponse:
-        categories: QuerySet[Category] = self.get_queryset()
-        response: [dict] = []
+    def render_to_response(self, *args, **kwargs) -> JsonResponse:
+        categories: QuerySet[Category] = self.get_queryset().order_by('name')
+        response: list = []
         for category in categories:
             response.append({
                 "id": category.id,
@@ -94,7 +122,7 @@ class CategoryListView(ListView):
 class CategoryDetailView(DetailView):
     model: Category = Category
 
-    def render_to_response(self, context):
+    def render_to_response(self, *args, **kwargs):
         category: Category = self.object
         return JsonResponse({
             "id": category.id,
@@ -123,3 +151,36 @@ class CategoryCreateView(CreateView):
 
     def form_invalid(self, form) -> JsonResponse:
         return JsonResponse(form.errors, status=400)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class CategoryUpdateView(UpdateView):
+    model: Category = Category
+    fields: list[str] = ['name']
+
+    def get_form_kwargs(self) -> dict:
+        kwargs: dict = super().get_form_kwargs()
+        if self.request.content_type == 'application/json':
+            data: dict = json.loads(self.request.body)
+            kwargs['data'] = data
+        return kwargs
+
+    def form_valid(self, form) -> JsonResponse:
+        self.object = form.save()
+        return JsonResponse({
+            "id": self.object.id,
+            "name": self.object.name
+        })
+
+    def form_invalid(self, form) -> JsonResponse:
+        return JsonResponse(form.errors, status=400)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class CategoryDeleteView(DeleteView):
+    model: Category = Category
+
+    def delete(self, request, *args, **kwargs) -> JsonResponse:
+        self.object = self.get_object()
+        self.object.delete()
+        return JsonResponse({"status": "ok"}, status=201)

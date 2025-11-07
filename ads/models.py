@@ -2,19 +2,30 @@ from django.db import models
 
 
 class Category(models.Model):
-    name: str = models.CharField(max_length=100)
+    name = models.CharField(max_length=100, verbose_name="Название")
 
     def __str__(self):
         return self.name
 
+    class Meta:
+        verbose_name = "Категория"
+        verbose_name_plural = "Категории"
 
-class Ads(models.Model):
-    name: str = models.CharField(max_length=100, verbose_name="Заголовок")
-    author: str = models.CharField(max_length=100, verbose_name="Автор")
-    price: int = models.IntegerField(verbose_name="Цена")
-    description: str = models.TextField(max_length=1200, verbose_name="Описание", blank=True)
-    address: str = models.TextField(max_length=100, verbose_name="Адрес")
-    is_published: bool = models.BooleanField(default=False, verbose_name="Опубликовано")
+
+class Ad(models.Model):
+    name = models.CharField(max_length=100, verbose_name="Заголовок")
+    author = models.CharField(max_length=100, verbose_name="Автор")
+    price = models.DecimalField(max_digits=10, decimal_places=2,  verbose_name="Цена")
+    description = models.TextField( verbose_name="Описание", blank=True)
+    address = models.TextField( verbose_name="Адрес")
+    is_published = models.BooleanField(default=False, verbose_name="Опубликовано")
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, blank=True)
+    image = models.ImageField(upload_to='images/', null=True, blank=True, verbose_name="Картинка")
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        ordering = ['id']
+        verbose_name = "Обьяввление"
+        verbose_name_plural = "Обьявления"
