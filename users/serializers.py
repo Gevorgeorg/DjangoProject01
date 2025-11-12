@@ -16,3 +16,9 @@ class UserSerializer(ModelSerializer):
         """Подсчет опубликованных объявлений пользователя"""
         return Ad.objects.filter(author=obj.username, is_published=True).count()
 
+
+class LocationSerializer(ModelSerializer):
+
+    class Meta:
+        model = Location
+        fields = "__all__"
