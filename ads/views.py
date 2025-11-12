@@ -7,13 +7,11 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 import json
-
 from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView
-
 from ads.models import Ad, Category
 from django.views.generic import ListView, DetailView, CreateView, DeleteView, UpdateView
-from DjangoProject.settings import ITEMS_PER_PAGE
-from ads.serializers import AdSerializer
+from settings.settings import ITEMS_PER_PAGE
+from ads.serializers import AdSerializer, AdCreateSerializer, AdUpdateSerializer
 
 
 @csrf_exempt
@@ -22,90 +20,56 @@ def home_view(request: HttpRequest) -> HttpResponse:
         return JsonResponse({"status": "ok"}, status=200)
 
 
-
 class AdListView(ListAPIView):
-    queryset = Ad.objects.all().select_related('category')
     serializer_class = AdSerializer
+
+    def get_queryset(self) -> QuerySet[Ad]:
+        """Фильтры"""
+
+        queryset: QuerySet = Ad.objects.all().select_related('category').order_by('-price')
+
+        category_ids: str = self.request.GET.get('cat', None)
+        if category_ids:
+            category_list: list = [int(cat_id) for cat_id in category_ids.split(',')]
+            queryset: QuerySet = queryset.filter(category_id__in=category_list)
+
+        search_text: str = self.request.GET.get('text')
+        if search_text:
+            queryset: QuerySet = queryset.filter(name__icontains=search_text)
+
+        price_min: str = self.request.GET.get('price_min')
+        if price_min:
+            queryset: QuerySet = queryset.filter(price__gte=float(price_min))
+        price_max: str = self.request.GET.get('price_max')
+        if price_max:
+            queryset: QuerySet = queryset.filter(price__lte=float(price_max))
+
+        location_name: str = self.request.GET.get('location')
+        if location_name:
+            queryset: QuerySet = queryset.filter(author__location__name__icontains=location_name)
+
+        return queryset
+
 
 class AdDetailView(RetrieveAPIView):
-    queryset = Ad.objects.all()
+    queryset: QuerySet = Ad.objects.all().select_related('category', 'author', 'author__location')
     serializer_class = AdSerializer
+
 
 class AdCreateView(CreateAPIView):
-    queryset = Ad.objects.all()
-    serializer_class = AdSerializer
+    queryset: QuerySet = Ad.objects.all()
+    serializer_class = AdCreateSerializer
+
 
 class AdUpdateView(UpdateAPIView):
-    queryset = Ad.objects.all()
-    serializer_class = AdSerializer
+    queryset: QuerySet = Ad.objects.all()
+    serializer_class = AdUpdateSerializer
+
 
 class AdDeleteView(DestroyAPIView):
-    queryset = Ad.objects.all()
+    queryset: QuerySet = Ad.objects.all()
     serializer_class = AdSerializer
 
-
-@method_decorator(csrf_exempt, name='dispatch')
-class AdView(View):
-
-    def get(self, request: HttpRequest, pk: int = None) -> JsonResponse:
-        if pk:
-            ad: Ad = get_object_or_404(Ad, id=pk)
-            return JsonResponse(self._add_to_dict(ad))
-
-        else:
-            page_number: int = int(request.GET.get('page', 1))
-            ads_list = Ad.objects.all().order_by('-price')
-            paginator = Paginator(ads_list, ITEMS_PER_PAGE)
-            page_obj = paginator.get_page(page_number)
-
-            return JsonResponse({
-                "items": [self._add_to_dict(ad) for ad in page_obj],
-                "total": paginator.count,
-                "num_pages": paginator.num_pages,
-            }, status=200)
-
-    def post(self, request: HttpRequest) -> JsonResponse:
-        try:
-            data: dict = json.loads(request.body)
-            ad: Ad = Ad(**{k: v for k, v in data.items() if
-                           k in ['name', 'author', 'price', 'description', 'address', 'is_published']})
-            ad.full_clean()
-            ad.save()
-            return JsonResponse(self._add_to_dict(ad), status=201)
-        except (ValidationError, KeyError) as e:
-            return JsonResponse({"error": str(e)}, status=422)
-
-    def patch(self, request: HttpRequest, pk: int) -> JsonResponse:
-        try:
-            ad: Ad = get_object_or_404(Ad, id=pk)
-            data: dict = json.loads(request.body)
-
-            for field in ['name', 'author', 'price', 'description', 'address', 'is_published']:
-                if field in data:
-                    setattr(ad, field, data[field])
-
-            ad.full_clean()
-            ad.save()
-            return JsonResponse(self._add_to_dict(ad))
-        except ValidationError as e:
-            return JsonResponse({"error": str(e)}, status=422)
-
-    def delete(self, request: HttpRequest, pk: int) -> JsonResponse:
-        ad: Ad = get_object_or_404(Ad, id=pk)
-        ad.delete()
-        return JsonResponse({"status": "ok"})
-
-    def _add_to_dict(self, ad: Ad) -> dict:
-        return {
-            "id": ad.id,
-            "name": ad.name,
-            "author": ad.author,
-            "price": ad.price,
-            "description": ad.description,
-            "address": ad.address,
-            "is_published": ad.is_published,
-            "image": ad.image.url if ad.image else None
-        }
 
 
 @method_decorator(csrf_exempt, name='dispatch')

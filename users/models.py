@@ -3,8 +3,8 @@ from django.db import models
 
 class Location(models.Model):
     name = models.CharField(max_length=100, verbose_name="Название")
-    lat = models.FloatField(verbose_name="Широта")
-    lng = models.FloatField(verbose_name="Долгота")
+    lat = models.FloatField(verbose_name="Широта", null=True, blank=True)
+    lng = models.FloatField(verbose_name="Долгота", null=True, blank=True)
 
     def __str__(self):
         return self.name
@@ -21,7 +21,7 @@ class User(models.Model):
     password = models.CharField(max_length=100, verbose_name="Пароль")
     role = models.CharField(max_length=100, verbose_name="Роль")
     age = models.IntegerField(verbose_name="Возраст")
-    location = models.ForeignKey(Location, on_delete=models.CASCADE)
+    location = models.ForeignKey(Location, on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
         return self.username
@@ -34,4 +34,3 @@ class User(models.Model):
         ordering = ['first_name']
         verbose_name = "Пользователь"
         verbose_name_plural = "Пользователь"
-
