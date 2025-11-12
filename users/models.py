@@ -26,7 +26,12 @@ class User(models.Model):
     def __str__(self):
         return self.username
 
+    @property
+    def location_name(self):
+        return self.location.name if self.location else None
+
     class Meta:
         ordering = ['first_name']
         verbose_name = "Пользователь"
         verbose_name_plural = "Пользователь"
+
