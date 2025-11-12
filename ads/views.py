@@ -7,15 +7,41 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 import json
+
+from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView
+
 from ads.models import Ad, Category
 from django.views.generic import ListView, DetailView, CreateView, DeleteView, UpdateView
 from DjangoProject.settings import ITEMS_PER_PAGE
+from ads.serializers import AdSerializer
 
 
 @csrf_exempt
 def home_view(request: HttpRequest) -> HttpResponse:
     if request.method == 'GET':
         return JsonResponse({"status": "ok"}, status=200)
+
+
+
+class AdListView(ListAPIView):
+    queryset = Ad.objects.all().select_related('category')
+    serializer_class = AdSerializer
+
+class AdDetailView(RetrieveAPIView):
+    queryset = Ad.objects.all()
+    serializer_class = AdSerializer
+
+class AdCreateView(CreateAPIView):
+    queryset = Ad.objects.all()
+    serializer_class = AdSerializer
+
+class AdUpdateView(UpdateAPIView):
+    queryset = Ad.objects.all()
+    serializer_class = AdSerializer
+
+class AdDeleteView(DestroyAPIView):
+    queryset = Ad.objects.all()
+    serializer_class = AdSerializer
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -101,7 +127,7 @@ class AdUploadImageView(View):
             "description": ad.description,
             "address": ad.address,
             "is_published": ad.is_published,
-            "image": ad.image.url if ad.image else None  # URL изображения
+            "image": ad.image.url if ad.image else None
         }
 
 

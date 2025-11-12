@@ -24,7 +24,6 @@ class UserListView(ListAPIView):
 
 
 
-
 class UserDetailView(RetrieveAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -46,50 +45,3 @@ class LocationViewSet(ModelViewSet):
     queryset = Location.objects.all()
     serializer_class = LocationSerializer
 
-
-@method_decorator(csrf_exempt, name='dispatch')
-class LocationView(View):
-    def get(self, request: HttpRequest, pk: int = None) -> JsonResponse:
-        if pk:
-            location = get_object_or_404(Location, id=pk)
-            return JsonResponse(self._add_to_dict(location))
-        else:
-            locations_list = Location.objects.all()
-            locations_data = [self._add_to_dict(location) for location in locations_list]
-            return JsonResponse(locations_data, safe=False)
-
-    def post(self, request: HttpRequest) -> JsonResponse:
-
-        data: dict = json.loads(request.body)
-        location: Location = Location(**{key: val for key, val in data.items() if
-                                         key in ['name', 'lat', 'lng']})
-        location.full_clean()
-        location.save()
-
-        return JsonResponse(self._add_to_dict(location), status=201)
-
-    def patch(self, request: HttpRequest, pk: int) -> JsonResponse:
-
-        location: Location = get_object_or_404(Location, id=pk)
-        data: dict = json.loads(request.body)
-
-        for field in ['name', 'lat', 'lng']:
-            if field in data:
-                setattr(location, field, data[field])
-
-        location.full_clean()
-        location.save()
-        return JsonResponse(self._add_to_dict(location))
-
-    def delete(self, request: HttpRequest, pk: int) -> JsonResponse:
-        location: Location = get_object_or_404(Location, id=pk)
-        location.delete()
-        return JsonResponse({"status": "ok"})
-
-    def _add_to_dict(self, location: Location) -> dict:
-        return {
-            "id": location.id,
-            "name": location.name,
-            "lat": location.lat,
-            "lng": location.lng,
-        }
