@@ -1,22 +1,19 @@
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
-
-from ads.models import Ad
 from .models import User, Location
 
 
 class UserSerializer(ModelSerializer):
-    location = serializers.CharField(source='location.name', read_only=True)
-    total_ads = serializers.SerializerMethodField()
+    location = serializers.SlugRelatedField(read_only=True, slug_field='name')
+    total_ads = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = User
         exclude = ["password"]
 
-    def get_total_ads(self, obj: User) -> int:
-        """Подсчет постов авторов"""
-
-        return Ad.objects.filter(author=obj, is_published=True).count()
+    def create(self, validated_data: dict) -> User:
+        user: User = User.objects.create_user(**validated_data)
+        return user
 
 
 class LocationSerializer(ModelSerializer):

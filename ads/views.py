@@ -1,17 +1,21 @@
-from django.core.exceptions import ValidationError
-from django.core.paginator import Paginator
-from django.db.models import QuerySet
+from django.db.models import QuerySet, Prefetch
 from django.http import HttpResponse, JsonResponse, HttpRequest
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
-import json
-from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView
-from ads.models import Ad, Category
 from django.views.generic import ListView, DetailView, CreateView, DeleteView, UpdateView
-from settings.settings import ITEMS_PER_PAGE
+import json
+
+from ads.models import Ad, Category
+from ads.permissions import IsOwnerOrAdmin
 from ads.serializers import AdSerializer, AdCreateSerializer, AdUpdateSerializer
+
+from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from .models import Selection
+from .serializers import SelectionSerializer
 
 
 @csrf_exempt
@@ -26,7 +30,7 @@ class AdListView(ListAPIView):
     def get_queryset(self) -> QuerySet[Ad]:
         """Фильтры"""
 
-        queryset: QuerySet = Ad.objects.all().select_related('category').order_by('-price')
+        queryset: QuerySet = Ad.objects.all().select_related('category', 'author').order_by('-price')
 
         category_ids: str = self.request.GET.get('cat', None)
         if category_ids:
@@ -59,17 +63,21 @@ class AdDetailView(RetrieveAPIView):
 class AdCreateView(CreateAPIView):
     queryset: QuerySet = Ad.objects.all()
     serializer_class = AdCreateSerializer
+    permission_classes = [IsAuthenticated]
 
 
 class AdUpdateView(UpdateAPIView):
     queryset: QuerySet = Ad.objects.all()
     serializer_class = AdUpdateSerializer
+    permission_classes = [IsAuthenticated, IsOwnerOrAdmin]
+    authentication_classes = [JWTAuthentication]
 
 
 class AdDeleteView(DestroyAPIView):
     queryset: QuerySet = Ad.objects.all()
     serializer_class = AdSerializer
-
+    permission_classes = [IsAuthenticated, IsOwnerOrAdmin]
+    authentication_classes = [JWTAuthentication]
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -174,3 +182,38 @@ class CategoryDeleteView(DeleteView):
         self.object = self.get_object()
         self.object.delete()
         return JsonResponse({"status": "ok"}, status=201)
+
+
+class SelectionListView(ListAPIView):
+    queryset = Selection.objects.all().prefetch_related('items')
+    serializer_class = SelectionSerializer
+    permission_classes = [AllowAny]
+
+
+class SelectionDetailView(RetrieveAPIView):
+    queryset = Selection.objects.prefetch_related(Prefetch('items',
+                                                           queryset=Ad.objects.select_related(
+                                                               'category', 'author')))
+    serializer_class = SelectionSerializer
+    permission_classes = [AllowAny]
+
+
+class SelectionCreateView(CreateAPIView):
+    queryset = Selection.objects.all()
+    serializer_class = SelectionSerializer
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+
+class SelectionUpdateView(UpdateAPIView):
+    queryset = Selection.objects.all()
+    serializer_class = SelectionSerializer
+    permission_classes = [IsAuthenticated, IsOwnerOrAdmin]
+    authentication_classes = [JWTAuthentication]
+
+
+class SelectionDeleteView(DestroyAPIView):
+    queryset = Selection.objects.all()
+    serializer_class = SelectionSerializer
+    permission_classes = [IsAuthenticated, IsOwnerOrAdmin]
+    authentication_classes = [JWTAuthentication]

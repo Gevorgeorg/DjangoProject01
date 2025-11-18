@@ -1,3 +1,4 @@
+from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 
@@ -14,7 +15,7 @@ class Location(models.Model):
         verbose_name_plural = "Локации"
 
 
-class User(models.Model):
+class User(AbstractUser):
     first_name = models.CharField(max_length=100, verbose_name="Имя")
     last_name = models.CharField(max_length=100, null=True, blank=True, verbose_name="Фамилия")
     username = models.CharField(max_length=100, unique=True, verbose_name="Имя пользователя(логин)")

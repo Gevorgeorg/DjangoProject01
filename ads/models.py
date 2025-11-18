@@ -27,5 +27,18 @@ class Ad(models.Model):
 
     class Meta:
         ordering = ['id']
-        verbose_name = "Обьяввление"
+        verbose_name = "Обьявление"
         verbose_name_plural = "Обьявления"
+
+
+class Selection(models.Model):
+    name = models.CharField(max_length=100, verbose_name="Название")
+    author = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="автор")
+    items = models.ManyToManyField('Ad', verbose_name="Объявления в подборке")
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Подборка"
+        verbose_name_plural = "Подборки"

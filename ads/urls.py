@@ -17,4 +17,10 @@ urlpatterns = [
     path('categories/<int:pk>/', views.CategoryDetailView.as_view(), name='one_category'),
     path('categories/<int:pk>/update/', CategoryUpdateView.as_view(), name='category_update'),
     path('categories/<int:pk>/delete/', CategoryDeleteView.as_view(), name='category_delete'),
+
+    path('selections/', views.SelectionListView.as_view(), name='selection_list'),
+    path('selections/<int:pk>/', views.SelectionDetailView.as_view(), name='selection_detail'),
+    path('selections/create/', views.SelectionCreateView.as_view(), name='selection_create'),
+    path('selections/<int:pk>/update/', views.SelectionUpdateView.as_view(), name='selection_update'),
+    path('selections/<int:pk>/delete/', views.SelectionDeleteView.as_view(), name='selection_delete'),
 ]
