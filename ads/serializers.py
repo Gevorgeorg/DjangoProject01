@@ -16,7 +16,7 @@ class AdSerializer(ModelSerializer):
 class AdCreateSerializer(ModelSerializer):
     class Meta:
         model = Ad
-        fields = ['name', 'author', 'price', 'description', 'is_published', 'category', 'image']
+        fields = ['name', 'price', 'description', 'is_published', 'category', 'image']
 
     def create(self, validated_data: dict) -> Ad:
         return Ad.objects.create(
