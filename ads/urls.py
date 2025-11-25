@@ -1,26 +1,16 @@
-from ads import views
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from . import views
 
-from ads.views import CategoryUpdateView, CategoryDeleteView, AdUploadImageView
-
+router = DefaultRouter()
+router.register(r'ads/(?P<ad_pk>\d+)/comments', views.CommentViewSet, basename='comment')
 urlpatterns = [
-    path('', views.home_view, name='home'),
-    path('ads/', views.AdListView.as_view(), name='all_ads'),
+
+    path('ads/', views.AdListCreateAPIView.as_view(), name='all_ads'),
+    path('ads/me/', views.MyAdsListView.as_view(), name='my_ads'),
+
     path('ads/<int:pk>/', views.AdDetailView.as_view(), name='one_ad'),
-    path('ads/create/', views.AdCreateView.as_view(), name='create_ads'),
-    path('ads/<int:pk>/update/', views.AdUpdateView.as_view(), name='ypdate_ad'),
-    path('ads/<int:pk>/delete/', views.AdDeleteView.as_view(), name='del_ad'),
-
-    path('ads/<int:pk>/upload_image/', AdUploadImageView.as_view(), name='ad-upload-image'),
-    path('categories/', views.CategoryListView.as_view(), name='all_categories'),
-    path('categories/create/', views.CategoryCreateView.as_view(), name='category_create'),
-    path('categories/<int:pk>/', views.CategoryDetailView.as_view(), name='one_category'),
-    path('categories/<int:pk>/update/', CategoryUpdateView.as_view(), name='category_update'),
-    path('categories/<int:pk>/delete/', CategoryDeleteView.as_view(), name='category_delete'),
-
-    path('selections/', views.SelectionListView.as_view(), name='selection_list'),
-    path('selections/<int:pk>/', views.SelectionDetailView.as_view(), name='selection_detail'),
-    path('selections/create/', views.SelectionCreateView.as_view(), name='selection_create'),
-    path('selections/<int:pk>/update/', views.SelectionUpdateView.as_view(), name='selection_update'),
-    path('selections/<int:pk>/delete/', views.SelectionDeleteView.as_view(), name='selection_delete'),
+    path('ads/<int:pk>/update/', views.AdUpdateView.as_view(), name='update_ad'),
+    path('ads/<int:pk>/delete/', views.AdDeleteView.as_view(), name='delete_ad'),
+    path('', include(router.urls)),
 ]

@@ -1,12 +1,27 @@
-from rest_framework.relations import SlugRelatedField
-from ads.models import Selection, Ad
-from rest_framework.serializers import ModelSerializer
+from django.utils import timezone
 from rest_framework import serializers
+from rest_framework.serializers import ModelSerializer
+
+from .models import Ad, Comment
 
 
-class AdSerializer(ModelSerializer):
-    category = SlugRelatedField(read_only=True, slug_field='name')
-    author = SlugRelatedField(read_only=True, slug_field='first_name')
+class AdListSerializer(ModelSerializer):
+    pk = serializers.IntegerField(source='id', read_only=True)
+    author_first_name = serializers.CharField(source='author.first_name', read_only=True)
+    author_last_name = serializers.CharField(source='author.last_name', read_only=True)
+    author_id = serializers.IntegerField(source='author.id', read_only=True)
+    phone = serializers.CharField(source='author.phone', read_only=True)
+
+    class Meta:
+        model = Ad
+        fields = '__all__'
+
+
+class AdDetailSerializer(ModelSerializer):
+    author_first_name = serializers.CharField(source='author.first_name', read_only=True)
+    author_last_name = serializers.CharField(source='author.last_name', read_only=True)
+    author_id = serializers.IntegerField(source='author.id', read_only=True)
+    phone = serializers.CharField(source='author.phone', read_only=True)
 
     class Meta:
         model = Ad
@@ -16,48 +31,36 @@ class AdSerializer(ModelSerializer):
 class AdCreateSerializer(ModelSerializer):
     class Meta:
         model = Ad
-        fields = ['name', 'price', 'description', 'is_published', 'category', 'image']
+        fields = ['image', 'title', 'price', 'description']
 
-    def create(self, validated_data: dict) -> Ad:
-        return Ad.objects.create(
-            **validated_data,
-            author=self.context['request'].user
-        )
+    def create(self, validated_data):
+        validated_data['author'] = self.context['request'].user
+        validated_data['created_at'] = timezone.now()
+        return super().create(validated_data)
 
 
 class AdUpdateSerializer(ModelSerializer):
     class Meta:
         model = Ad
-        fields = ['name', 'price', 'description', 'is_published', 'category', 'image']
+        fields = ['image', 'title', 'price', 'description']
 
 
-class SelectionSerializer(serializers.ModelSerializer):
-    items = AdSerializer(many=True, read_only=True)
-    author = serializers.IntegerField(source='author.id', read_only=True)
-    items_input = serializers.ListField(
-        child=serializers.IntegerField(),
-        write_only=True,
-        required=False
-    )
+class CommentSerializer(ModelSerializer):
+    pk = serializers.IntegerField(source='id', read_only=True)
+    author_id = serializers.IntegerField(source='author.id', read_only=True)
+    author_first_name = serializers.CharField(source='author.first_name', read_only=True)
+    author_last_name = serializers.CharField(source='author.last_name', read_only=True)
+    ad_id = serializers.IntegerField(source='ad.id', read_only=True)
 
     class Meta:
-        model = Selection
-        fields = ['id', 'name', 'items', 'author', 'items_input']
+        model = Comment
+        fields = [
+            'pk', 'text', 'author_id', 'created_at',
+            'author_first_name', 'author_last_name', 'ad_id'
+        ]
 
-    def create(self, validated_data):
-        items_data: list[int] = validated_data.pop('items_input', [])
-        selection: Selection = Selection.objects.create(**validated_data,
-                                                        author=self.context['request'].user)
-        selection.items.set(Ad.objects.filter(id__in=items_data))
-        return selection
 
-    def update(self, instance, validated_data):
-        items_data: list[int] = validated_data.pop('items_input', None)
-
-        instance.name = validated_data.get('name', instance.name)
-        instance.save()
-
-        if items_data is not None:
-            instance.items.set(Ad.objects.filter(id__in=items_data))
-
-        return instance
+class CommentCreateUpdateSerializer(ModelSerializer):
+    class Meta:
+        model = Comment
+        fields = ['text']

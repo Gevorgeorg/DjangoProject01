@@ -1,17 +1,25 @@
 from django.db.models import QuerySet, Count
-from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.viewsets import ModelViewSet
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.generics import (RetrieveAPIView,
+                                     UpdateAPIView,
+                                     DestroyAPIView,
+                                     ListCreateAPIView,
+                                     RetrieveUpdateAPIView)
+from ads.permissions import IsOwnerOrAdmin
+from users.models import User
+from .serializers import UserSerializer, UserUpdateSerializer
 
-from users.models import User, Location
-from .serializers import UserSerializer, LocationSerializer
 
+class UserListCreateView(ListCreateAPIView):
+    queryset = User.objects.annotate(total_ads=Count('ad'))
+    permission_classes = [AllowAny]
 
-class UserListView(ListAPIView):
-    queryset: QuerySet = User.objects.annotate(
-    total_ads=Count('ad')).select_related('location')
-    serializer_class = UserSerializer
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            from .serializers import UserRegistrationSerializer
+            return UserRegistrationSerializer
+        return UserSerializer
 
 
 class UserDetailView(RetrieveAPIView):
@@ -21,26 +29,31 @@ class UserDetailView(RetrieveAPIView):
     authentication_classes = [JWTAuthentication]
 
 
-class UserCreateView(CreateAPIView):
-    queryset: QuerySet = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [AllowAny]
-
-
 class UserUpdateView(UpdateAPIView):
     queryset: QuerySet = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOwnerOrAdmin]
     authentication_classes = [JWTAuthentication]
 
 
 class UserDeleteView(DestroyAPIView):
     queryset: QuerySet = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOwnerOrAdmin]
     authentication_classes = [JWTAuthentication]
 
 
-class LocationViewSet(ModelViewSet):
-    queryset: QuerySet = Location.objects.all()
-    serializer_class = LocationSerializer
+class CurrentUserView(RetrieveUpdateAPIView):
+    permission_classes = [IsAuthenticated, IsOwnerOrAdmin]
+
+    def get_object(self):
+        """Возвращает текущего аутентифицированного пользователя"""
+
+        return self.request.user
+
+    def get_serializer_class(self):
+        """выбирает сериализатор в зависимости от метода"""
+
+        if self.request.method in ['PUT', 'PATCH']:
+            return UserUpdateSerializer
+        return UserSerializer
