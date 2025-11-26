@@ -12,8 +12,8 @@ def email_validator(value: str):
         raise ValidationError("Недопустимый почтовый домен")
 
 
-class UserManager(BaseUserManager):
-    def create_user(self, email, first_name, last_name, phone, password=None):
+class UserManager(BaseUserManager): # в отдельный фалй!!! это не модель а менеджер!! не место в models.py
+    def create_user(self, email, first_name, last_name, phone, password=None): # TypeHints????
         user = self.model(
             email=self.normalize_email(email),
             first_name=first_name,
@@ -26,7 +26,7 @@ class UserManager(BaseUserManager):
 
         return user
 
-    def create_superuser(self, email, first_name, last_name, phone, password=None):
+    def create_superuser(self, email, first_name, last_name, phone, password=None): # TypeHints????
         user = self.create_user(
             email,
             first_name=first_name,
@@ -43,13 +43,13 @@ class UserManager(BaseUserManager):
 class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True, verbose_name="Почта", validators=[email_validator])
     password = models.CharField(max_length=128, verbose_name="Пароль")
-    last_login = models.DateTimeField(_('last login'), blank=True, null=True)
+    last_login = models.DateTimeField(_('last login'), blank=True, null=True) # Слишком сложна
     is_active = models.BooleanField(default=True)
     first_name = models.CharField(max_length=100, verbose_name="Имя")
-    last_name = models.CharField(max_length=100, blank=True, verbose_name="Фамилия")
-    phone = models.CharField(max_length=15, verbose_name="Телефон")
-    role = models.CharField(max_length=50, default='user', verbose_name="Роль")
-    is_staff = models.BooleanField(default=False)
+    last_name = models.CharField(max_length=100, blank=True, verbose_name="Фамилия") # в админке не сохранится такое создание
+    phone = models.CharField(max_length=15, verbose_name="Телефон") # PhoneNumberField есть езе для такого
+    role = models.CharField(max_length=50, default='user', verbose_name="Роль") # где Choices почему свободное поле ввода если ты и так знаешь какие роли могут быть!
+    is_staff = models.BooleanField(default=False) # ?    verbose_name???
     is_superuser = models.BooleanField(default=False)
 
     objects = UserManager()

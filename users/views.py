@@ -13,11 +13,11 @@ from .serializers import UserSerializer, UserUpdateSerializer
 
 class UserListCreateView(ListCreateAPIView):
     queryset = User.objects.annotate(total_ads=Count('ad'))
-    permission_classes = [AllowAny]
+    permission_classes = [AllowAny] # не обязательно так(если не укажешь будет для всех и так
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
-            from .serializers import UserRegistrationSerializer
+            from .serializers import UserRegistrationSerializer # Импорты так не хорошо!!! очень крайне редко когда надо
             return UserRegistrationSerializer
         return UserSerializer
 
