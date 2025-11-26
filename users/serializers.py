@@ -3,7 +3,7 @@ from .models import User
 
 
 class UserRegistrationSerializer(ModelSerializer):
-    password = ...
+    password = CharField(wright_only=True) #?
     class Meta:
         model = User
         fields = ('id', 'email', 'password', 'first_name', 'last_name', 'phone')
