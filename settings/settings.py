@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+#Django-environ!!!!  os.getenv нахуй их джанго)
 # Security
 SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
@@ -37,10 +37,12 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'djoser',
+    #'drf_spectacular',
+    #'redoc',
     'ads',
     'users',
-    'drf_spectacular',
-    'redoc',
+    'drf_spectacular', # Тикие вещи всегда до приложух делай своих
+    'redoc', # Тикие вещи всегда до приложух делай своих
 ]
 
 # Middleware
@@ -145,7 +147,7 @@ DJOSER = {
 }
 
 # Documentation
-from drf_spectacular.settings import SPECTACULAR_DEFAULTS
+from drf_spectacular.settings import SPECTACULAR_DEFAULTS  # Все импорты только в шапке профиля!!!
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Ads board API',
     'DESCRIPTION': 'Ads board API',

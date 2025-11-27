@@ -12,21 +12,22 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 class AdListCreateAPIView(ListCreateAPIView):
     serializer_class = AdListSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [AllowAny] # в юзерах освятил
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
             return AdCreateSerializer
         return AdListSerializer
 
+    # Это должно быть иначе! https://www.django-rest-framework.org/api-guide/filtering/#searchfilter
+    # search_text: str = self.request.GET.get('title')
+    # if search_text:
+    #     queryset: QuerySet = queryset.filter(title__icontains=search_text)
+
     def get_queryset(self) -> QuerySet[Ad]:
         """Фильтры"""
 
         queryset: QuerySet = Ad.objects.all().select_related('author')
-
-        search_text: str = self.request.GET.get('title')
-        if search_text:
-            queryset: QuerySet = queryset.filter(title__icontains=search_text)
 
         return queryset
 

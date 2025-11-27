@@ -35,7 +35,7 @@ class AdCreateSerializer(ModelSerializer):
 
     def create(self, validated_data):
         validated_data['author'] = self.context['request'].user
-        validated_data['created_at'] = timezone.now()
+        validated_data['created_at'] = timezone.now() # Why??? created_at = models.DateTimeField(auto_now_add=True, verbose_name="Создано")
         return super().create(validated_data)
 
 
