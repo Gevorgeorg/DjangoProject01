@@ -22,7 +22,7 @@
 
 ```bash
 # Клонируйте репозиторий
-git clone https://github.com/Gevorgeorg/DjangoProject01.git
+git clone https://github.com/Gevorgeorg/Market-board.git
 ```
 ```bash
 # Установите зависимости
