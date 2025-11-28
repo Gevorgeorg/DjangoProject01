@@ -1,7 +1,5 @@
-from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
-
 from .models import Ad, Comment
 
 
@@ -35,7 +33,6 @@ class AdCreateSerializer(ModelSerializer):
 
     def create(self, validated_data):
         validated_data['author'] = self.context['request'].user
-        validated_data['created_at'] = timezone.now()
         return super().create(validated_data)
 
 

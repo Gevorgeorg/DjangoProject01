@@ -6,13 +6,15 @@ from ads.permissions import IsOwnerOrAdmin
 from ads.serializers import AdCreateSerializer, AdUpdateSerializer, AdListSerializer, AdDetailSerializer, \
     CommentCreateUpdateSerializer, CommentSerializer
 from rest_framework.generics import ListAPIView, RetrieveAPIView, UpdateAPIView, DestroyAPIView, ListCreateAPIView
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework import filters
 
 
 class AdListCreateAPIView(ListCreateAPIView):
     serializer_class = AdListSerializer
-    permission_classes = [AllowAny]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['title']
 
     def get_serializer_class(self):
         if self.request.method == 'POST':

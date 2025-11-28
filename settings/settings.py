@@ -9,20 +9,23 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-import os
+
 from datetime import timedelta
 from pathlib import Path
+from drf_spectacular.settings import SPECTACULAR_DEFAULTS
+import environ
 
-from dotenv import load_dotenv
 
-load_dotenv()
+env = environ.Env()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+environ.Env.read_env(BASE_DIR / '.env')
+
 # Security
-SECRET_KEY = os.getenv('SECRET_KEY')
-DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+SECRET_KEY = env('SECRET_KEY')
+DEBUG = env.bool('DEBUG', default=False)
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 
 # Apps
 INSTALLED_APPS = [
@@ -35,12 +38,13 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'rest_framework_simplejwt',
+    'phonenumber_field',
     'corsheaders',
     'djoser',
+    'django_filters',
+    'drf_spectacular',
     'ads',
     'users',
-    'drf_spectacular',
-    'redoc',
 ]
 
 # Middleware
@@ -56,10 +60,10 @@ MIDDLEWARE = [
 ]
 
 # CORS
-CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000').split(',')
-CORS_ALLOW_METHODS = [
-    'DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT',
-]
+CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[
+    "http://localhost:3000",
+    "http://127.0.0.1:3000"
+])
 CORS_ALLOW_CREDENTIALS = True
 
 # URLs & Templates
@@ -83,14 +87,10 @@ WSGI_APPLICATION = 'settings.wsgi.application'
 
 # Database
 DATABASES = {
-    'default': {
-        'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
-        'NAME': os.getenv('DB_NAME', 'skymarket'),
-        'USER': os.getenv('DB_USER', 'skymarket'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'skymarket'),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '5432'),
-    }
+    'default': env.db(
+        'DATABASE_URL',
+        default=f"postgresql://skymarket:skymarket@localhost:5432/skymarket"
+    )
 }
 
 # Password validation
@@ -110,7 +110,7 @@ USE_TZ = True
 # Static & Media files
 STATIC_URL = 'static/'
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -145,7 +145,6 @@ DJOSER = {
 }
 
 # Documentation
-from drf_spectacular.settings import SPECTACULAR_DEFAULTS
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Ads board API',
     'DESCRIPTION': 'Ads board API',

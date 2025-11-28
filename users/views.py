@@ -1,23 +1,24 @@
-from django.db.models import QuerySet, Count
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.generics import (RetrieveAPIView,
                                      UpdateAPIView,
                                      DestroyAPIView,
                                      ListCreateAPIView,
                                      RetrieveUpdateAPIView)
+from django.db.models import QuerySet, Count
 from ads.permissions import IsOwnerOrAdmin
 from users.models import User
 from .serializers import UserSerializer, UserUpdateSerializer
+from .serializers import UserRegistrationSerializer
 
 
 class UserListCreateView(ListCreateAPIView):
     queryset = User.objects.annotate(total_ads=Count('ad'))
-    permission_classes = [AllowAny]
 
     def get_serializer_class(self):
+        """выбирает сериализатор в зависимости от метода"""
+
         if self.request.method == 'POST':
-            from .serializers import UserRegistrationSerializer
             return UserRegistrationSerializer
         return UserSerializer
 
